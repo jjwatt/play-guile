@@ -10,6 +10,30 @@
 (define-macro (inc! x . rest)
   `(set! ,x (+ ,x ,(if (null? rest) 1 (car rest)))))
 
+(define-syntax with-drawing
+  (syntax-rules ()
+    ((_ body ...)
+     (dynamic-wind
+       (lambda () (BeginDrawing))
+       (lambda () body ...)
+       (lambda () (EndDrawing))))))
+
+(define-syntax with-texture-mode
+  (syntax-rules ()
+    ((_ target body ...)
+     (dynamic-wind
+       (lambda () (BeginTextureMode target))
+       (lambda () body ...)
+       (lambda () (EndTextureMode))))))
+
+(define-syntax with-blend-mode
+  (syntax-rules ()
+    ((_ target body ...)
+     (dynamic-wind
+       (lambda () (BeginBlendMode target))
+       (lambda () body ...)
+       (lambda () (EndBlendMode))))))
+
 (define (norm value low high)
   "Normalize value to between 0.0 and 1.0."
   (/ (- value low) (- high low)))
@@ -211,7 +235,6 @@
      (angle-jitter-scale . 2.0)
      (needs-smooth-state . #t))))
 
-
 (define (raylib-draw-line x1 y1 x2 y2)
   (DrawLineEx (make-Vector2 x1 y1)
 	      (make-Vector2 x2 y2)
@@ -253,35 +276,31 @@
 (define canvas-dest-rect (make-Rectangle 0 0 screen-width screen-height))
 (define origin (make-Vector2 0 0))
 
-(BeginTextureMode target-canvas)
-(ClearBackground BLACK)
-(EndTextureMode)
+(with-texture-mode target-canvas
+		   (ClearBackground BLACK))
 
 (define fade-overlay-color (make-Color 0 0 0 5))
 
 (define (main-loop)
   (unless (WindowShouldClose)
     (set! t (+ t 0.016))
-    (BeginTextureMode target-canvas)
-    (BeginBlendMode BLEND_ALPHA)
-    (DrawRectangle 0 0 screen-width screen-height fade-overlay-color)
-    (EndBlendMode)
-    (let ((center-x (/ screen-width 2))
-	  (center-y (/ screen-height 2))
-	  (startradius (/ screen-width 2.5)))
-      (draw-12 center-x center-y startradius t)
-      (draw-14 center-x center-y startradius t))
-    (EndTextureMode)
-    
-    (BeginDrawing)
-    (ClearBackground BLACK)
-    (DrawTexturePro (RenderTexture-texture target-canvas)
-		    canvas-source-rect
-		    canvas-dest-rect
-		    origin
-		    0.0
-		    WHITE)
-    (EndDrawing)
+    (with-texture-mode target-canvas
+      (with-blend-mode BLEND_ALPHA
+        (DrawRectangle 0 0 screen-width screen-height fade-overlay-color))
+      (let ((center-x (/ screen-width 2))
+	    (center-y (/ screen-height 2))
+	    (startradius (/ screen-width 2.5)))
+	(draw-12 center-x center-y startradius t)
+	(draw-14 center-x center-y startradius t)))
+
+    (with-drawing
+      (ClearBackground BLACK)
+      (DrawTexturePro (RenderTexture-texture target-canvas)
+		      canvas-source-rect
+		      canvas-dest-rect
+		      origin
+		      0.0
+		      WHITE))
     (main-loop)))
 
 (main-loop)
