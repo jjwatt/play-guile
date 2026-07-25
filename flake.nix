@@ -34,7 +34,7 @@
                   exec ${pkgs.guile_3_0}/bin/guile "$@"
               else
                   # Non-NixOS x86_64 Linux
-                  exec ${pkgs.nixGLMesa}/bin/nixGLMesa ${pkgs.guile_3_0}/bin/guile "$@"
+                  exec ${pkgs.nixgl.nixGLMesa}/bin/nixGLMesa ${pkgs.guile_3_0}/bin/guile "$@"
               fi
             ''
           else
