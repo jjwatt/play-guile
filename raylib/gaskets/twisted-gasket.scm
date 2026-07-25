@@ -1,8 +1,8 @@
 (use-modules (raylib))
 (use-modules (srfi srfi-9))
 
-(define screen-width 800)
-(define screen-height 450)
+(define screen-width 1280)
+(define screen-height 720)
 
 (define-macro (inc! x . rest)
   `(set! ,x (+ ,x ,(if (null? rest) 1 (car rest)))))

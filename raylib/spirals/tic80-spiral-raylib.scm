@@ -132,6 +132,12 @@
 	  128.0)
        1.0)))
 
+(define (raylib-draw-line x1 y1 x2 y2 color)
+  (DrawLineEx (make-Vector2 x1 y1)
+	      (make-Vector2 x2 y2)
+	      2.0
+	      color))
+
 (define (my-noise-spiral center-x center-y color intensity rotations)
   "Renders a perlin noise perturbed spiral."
   (let* ((start-radius 0.0)
@@ -158,7 +164,7 @@
 		 (y (+ center-y (* this-radius sin-r)))
 		 (hue (* (modulo (round (+ (/ angle 30.0) (/ t 4.0))) 6.0) 60.0))
 		 (dynamic-color (ColorFromHSV hue 0.8 1.0)))
-	    (DrawLine (inexact->exact (round x))
+	    (raylib-draw-line (inexact->exact (round x))
 		      (inexact->exact (round y))
 		      (inexact->exact (round last-x))
 		      (inexact->exact (round last-y))
