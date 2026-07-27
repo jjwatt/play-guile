@@ -64,3 +64,10 @@
 		 values))
 
 
+(define (my-reduce f rdefault lst)
+  (if (null? lst)
+      rdefault
+      (fold f (car lst) (cdr lst))))
+
+
+
