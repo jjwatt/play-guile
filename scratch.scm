@@ -38,7 +38,6 @@
 	(loop (kons (car curr) acc)
 	      (cdr curr)))))
 
-
 (define (my-multi-fold kons knil lst1 . lists)
   (if (null? lists)
       (let loop ((acc knil)
@@ -63,11 +62,25 @@
 		 keys
 		 values))
 
-
-(define (my-reduce f rdefault lst)
+(define (my-reduce f ridentity lst)
   (if (null? lst)
-      rdefault
+      ridentity
       (fold f (car lst) (cdr lst))))
 
+(define (my-reduce-right f ridentity lst)
+  "reduce-right implemented in terms of fold-right."
+  (if (null? lst)
+      ridentity
+      (fold-right f
+		  (car (last-pair lst))
+		  (drop-right lst 1))))
 
+(define (my-reduce-right2 f ridentity lst)
+  "reduce-right implemented in terms of itself."
+  (cond
+   ((null? lst) ridentity)
+   ((null? (cdr lst)) (car lst))
+   (else
+    (f (car lst)
+       (my-reduce-right2 f ridentity (cdr lst))))))
 
