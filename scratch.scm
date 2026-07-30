@@ -1,4 +1,7 @@
 (use-modules (srfi srfi-1))
+(use-modules (srfi srfi-8))
+(use-modules (ice-9 match))
+
 (define (delete-adjacent-duplicates-l lst)
   (if (null? lst)
       '()
@@ -83,4 +86,39 @@
    (else
     (f (car lst)
        (my-reduce-right2 f ridentity (cdr lst))))))
+
+
+(define (my-unfold p f g seed . tail-gen)
+  "Generate a list from a starting value."
+  (let ((tail (if (null? tail-gen)
+		  (lambda (s) '())
+		  (car tail-gen))))
+    (let loop ((s seed))
+      (if (p s)
+	  (tail s)
+	  (cons (f s)
+		(loop (g s)))))))
+
+(define (my-range start end)
+  "Generate a range of ints [start, end)."
+  (my-unfold (lambda (s) (= s end))
+	     (lambda (s) s)
+	     (lambda (s) (+ s 1))
+	     start))
+
+
+(define* (guile-unfold p f g seed #:optional (tail-gen (lambda (x) '())))
+  (define (reverse+tail lst seed)
+    (let loop ((lst lst)
+	       (result (tail-gen seed)))
+      (if (null? lst)
+	  result
+	  (loop (cdr lst)
+		(cons (car lst result))))))
+  (let loop ((seed seed)
+	     (result '()))
+    (if (p seed)
+	(reverse+tail result seed)
+	(loop (g seed)
+	      (cons (f seed) result)))))
 
