@@ -14,3 +14,9 @@
     ((x y) (list x y))
     ((_ . tail) (last-two tail))))
 
+;; Problem 03
+(define (at k lst)
+  (match lst
+    ((x . xs) (if (= k 0) x (at (- k 1) xs)))
+    (_ #f)))
+
