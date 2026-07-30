@@ -14,4 +14,17 @@
 
 (define (split-list lst)
   (let loop ((fast lst)
-             (slow lst))))
+             (slow lst)
+             (acc '()))
+    (match fast
+      ;; Even length.
+      ('() (cons (reverse acc) slow))
+      ;; Odd length.
+      ((_) (cons (reverse (cons (car slow) acc))
+                 (cdr slow)))
+      ((_ _ . fast-rest)
+       (loop fast-rest
+             (cdr slow)
+             (cons (car slow) acc)))
+      (_ #f))))
+

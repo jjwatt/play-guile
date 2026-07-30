@@ -111,3 +111,19 @@
              (cdr slow)
              (cons (car slow) rev)))
       (_ #f))))
+
+;; Problem 07: Flatten list.
+(define (my-flatten lst)
+  (define (flatten lst)
+    (let loop ((acc '())
+               (rest lst))
+      (match rest
+        ('() acc)
+        (((? list? head) . tail)
+         (loop (loop acc head) tail))
+        ((head . tail)
+         (loop (cons head acc) tail))
+        (_ acc))))
+  (reverse (flatten lst)))
+
+
