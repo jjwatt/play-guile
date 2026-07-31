@@ -19,13 +19,14 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        overlays = if system == "x86_64-linux" then [ nixgl.overlay ] else [ ];
+        overlays = [ raylib-guile.overlays.default ]
+          ++ (if system == "x86_64-linux" then [ nixgl.overlay ] else [ ]);
         pkgs = import nixpkgs {
           inherit system overlays;
         };
 
-        # Access the package from the external flake
-        raylib-guile-pkg = raylib-guile.packages.${system}.default;
+        # Access the package from the external flake overlay
+        raylib-guile-pkg = pkgs.raylib-guile;
 
         guile_3_0-wrapped =
           if system == "x86_64-linux" then
