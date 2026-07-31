@@ -164,7 +164,7 @@
 	       (prev-y           #f))
       (if (<= max-angle angle)
 	  smooth
-	  (let* ((color-phase (+ (/ angle color-scale) (* t color-speed))))
+	  (let ((color-phase (+ (/ angle color-scale) (* t color-speed))))
 	    (receive (r g b a) (get-palette-color color-phase)
 	      (set-color r g b a)
 	      (receive (next-smooth spikes combined)
