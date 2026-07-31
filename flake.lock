@@ -179,11 +179,11 @@
         "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1785515622,
-        "narHash": "sha256-nlM/RWpwDiMEQOn7zlklcAduRpTeVbcV/I3mXoPwGdI=",
+        "lastModified": 1785517209,
+        "narHash": "sha256-ckVwbEoTDPIXchxC6VWaUJwiEqVRWRQg1fczNsCXNVo=",
         "owner": "jjwatt",
         "repo": "raylib-guile",
-        "rev": "eefa411cb9f32248e10dae38163313a564528adf",
+        "rev": "759449479bfd992b2bedcac2a21942e634e228c4",
         "type": "github"
       },
       "original": {
