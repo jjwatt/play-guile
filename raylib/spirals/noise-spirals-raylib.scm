@@ -2,6 +2,7 @@
 (use-modules (srfi srfi-9))
 (use-modules (srfi srfi-1))
 (use-modules (srfi srfi-16))
+(use-modules (srfi srfi-11))
 (use-modules (ice-9 receive))
 
 (define screen-width 1280)
@@ -137,18 +138,20 @@
 
 (define (draw-spiral opts cfg center-x center-y max-radius t)
   "Iterates from 0 to max-angle, drawing line segments to form a generative spiral."
+  (define (get dict key default)
+    (or (assoc-ref dict key) default))
   (let* ((noise-fn           (assoc-ref cfg 'noise-fn))
 	 (random-fn          (assoc-ref cfg 'random-fn))
 	 (set-color          (assoc-ref cfg 'set-color))
 	 (draw-line          (assoc-ref cfg 'draw-line))
-	 (smooth-state       (or (assoc-ref cfg 'smooth-noise-state) 0.0))
+	 (smooth-state       (get cfg 'smooth-noise-state 0.0))
 	 (noise-strategy     (assoc-ref opts 'noise-strategy))
 	 (color-scale        (assoc-ref opts 'color-scale))
 	 (color-speed        (assoc-ref opts 'color-speed))
 	 (radius-noise       (assoc-ref opts 'radius-noise))
 	 (angle-jitter-scale (assoc-ref opts 'angle-jitter-scale))
 	 (needs-smooth-state (assoc-ref opts 'needs-smooth-state))
-	 (radius-scale-fn    (or (assoc-ref opts 'radius-scale-fn) (lambda (t nfn) 1)))
+	 (radius-scale-fn    (get opts 'radius-scale-fn (lambda (t nfn) 1)))
 
 	 (radius-scale       (radius-scale-fn t noise-fn))
 	 (dynamic-max-radius (* max-radius radius-scale))
@@ -163,25 +166,27 @@
 	       (prev-x           #f)
 	       (prev-y           #f))
       (if (<= max-angle angle)
-	  smooth
-	  (let ((color-phase (+ (/ angle color-scale) (* t color-speed))))
-	    (receive (r g b a) (get-palette-color color-phase)
-	      (set-color r g b a)
-	      (receive (next-smooth spikes combined)
-		  (noise-strategy noise-fn random-fn t angle base-radius smooth)
-	        (let* ((this-radius  (next-radius random-fn base-radius radius-noise-val spikes angle t))
-		       (angle-jitter (* angle-jitter-scale combined))
-		       (radians      (deg->rad (+ angle angle-jitter)))
-		       (x            (+ center-x (* this-radius (cos radians))))
-		       (y            (+ center-y (* this-radius (sin radians)))))
-		  (when prev-x
-		    (draw-line x y prev-x prev-y))
-		  (loop (+ angle step-size)
-		        next-smooth
-		        (+ base-radius (* growth-rate step-size))
-		        (+ radius-noise-val 0.09)
-		        x
-		        y)))))))))
+          smooth
+          (let-values (((r g b a)
+                         (get-palette-color (+ (/ angle color-scale) (* t color-speed))))
+                        ((next-smooth spikes combined)
+                         (noise-strategy noise-fn random-fn t angle base-radius smooth)))
+
+            (set-color r g b a)
+
+            (let* ((this-radius  (next-radius random-fn base-radius radius-noise-val spikes angle t))
+	           (angle-jitter (* angle-jitter-scale combined))
+	           (radians      (deg->rad (+ angle angle-jitter)))
+	           (x            (+ center-x (* this-radius (cos radians))))
+	           (y            (+ center-y (* this-radius (sin radians)))))
+	      (when prev-x
+	        (draw-line x y prev-x prev-y))
+	      (loop (+ angle step-size)
+	            next-smooth
+	            (+ base-radius (* growth-rate step-size))
+	            (+ radius-noise-val 0.09)
+	            x
+	            y)))))))
 
 (define (spiral-noise12 noise-fn random-fn t angle start-radius prev-smooth)
   "Noise strategy 12: Generate aggressive, heavily modulated noise profile."
