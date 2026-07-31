@@ -122,3 +122,16 @@
 	(loop (g seed)
 	      (cons (f seed) result)))))
 
+
+(define (manhattan-distance-sum points-a points-b)
+  (match-let loop ((((x1 y1) . rest-a) points-a)
+                   (((x2 y2) . rest-b) points-b)
+                   (acc 0))
+    (let ((dist (+ (abs (- x1 x2)) (abs (- y1 y2)))))
+      (if (or (null? rest-a) (null? rest-b))
+          (+ acc dist)
+          (loop rest-a rest-b (+ acc dist))))))
+
+;; (manhattan-distance-sum '((0 0) (2 3) (5 5))
+;;                         '((1 1) (2 1) (0 0)))
+;; => 14
