@@ -136,31 +136,36 @@
 	(noise-factor (+ 0.1 (* 0.9 spikes))))
     (+ base-radius (* radius-noise noise-factor) path-shredder)))
 
-(define (draw-spiral opts cfg center-x center-y max-radius t)
+(define* (draw-spiral #:key
+                      ;; Config
+                      noise-fn
+                      random-fn
+                      set-color
+                      draw-line
+                      (smooth-noise-state 0.0)
+                      ;; Options
+                      noise-strategy
+                      (color-scale 1.0)
+                      (color-speed 1.0)
+                      (radius-noise 0.0)
+                      (angle-jitter-scale 1.0)
+                      (needs-smooth-state #f)
+                      (radius-scale-fn (lambda (t nfn) 1.0))
+                      ;; Spatial / Render params
+                      (center-x 0)
+                      (center-y 0)
+                      (max-radius 100)
+                      (t 0.0)
+                      #:allow-other-keys)
   "Iterates from 0 to max-angle, drawing line segments to form a generative spiral."
-  (define (get dict key default)
-    (or (assoc-ref dict key) default))
-  (let* ((noise-fn           (assoc-ref cfg 'noise-fn))
-	 (random-fn          (assoc-ref cfg 'random-fn))
-	 (set-color          (assoc-ref cfg 'set-color))
-	 (draw-line          (assoc-ref cfg 'draw-line))
-	 (smooth-state       (get cfg 'smooth-noise-state 0.0))
-	 (noise-strategy     (assoc-ref opts 'noise-strategy))
-	 (color-scale        (assoc-ref opts 'color-scale))
-	 (color-speed        (assoc-ref opts 'color-speed))
-	 (radius-noise       (assoc-ref opts 'radius-noise))
-	 (angle-jitter-scale (assoc-ref opts 'angle-jitter-scale))
-	 (needs-smooth-state (assoc-ref opts 'needs-smooth-state))
-	 (radius-scale-fn    (get opts 'radius-scale-fn (lambda (t nfn) 1)))
-
-	 (radius-scale       (radius-scale-fn t noise-fn))
+  (let* ((radius-scale       (radius-scale-fn t noise-fn))
 	 (dynamic-max-radius (* max-radius radius-scale))
 	 (total-loops        10)
 	 (max-angle          (* 360.0 total-loops))
 	 (step-size          5)
 	 (growth-rate        (/ dynamic-max-radius max-angle)))
     (let loop ((angle            0)
-	       (smooth           (if needs-smooth-state smooth-state 0.0))
+	       (smooth           (if needs-smooth-state smooth-noise-state 0.0))
 	       (base-radius      0.0)
 	       (radius-noise-val radius-noise)
 	       (prev-x           #f)
@@ -188,7 +193,7 @@
 	            x
 	            y)))))))
 
-(define (spiral-noise12 noise-fn random-fn t angle start-radius prev-smooth)
+(define (spiral-noise-12 noise-fn random-fn t angle start-radius prev-smooth)
   "Noise strategy 12: Generate aggressive, heavily modulated noise profile."
   (let* ((glitch-time    (+ t (* 0.2 (random-fn))))
 	 (noise-angle    (+ angle (* start-radius 0.5)))
@@ -207,38 +212,43 @@
 	 (spikes         (expt (abs combined) dynamic-power)))
     (values smooth spikes combined)))
 
-(define (make-spiral options)
+(define (make-spiral options-plist)
   "Factory returning a runner function with spiral options injected."
   (lambda (cfg center-x center-y max-radius t)
-    (draw-spiral options cfg center-x center-y max-radius t)))
+    (apply draw-spiral
+           #:center-x center-x
+           #:center-y center-y
+           #:max-radius max-radius
+           #:t t
+           (append options-plist cfg))))
 
-(define draw-noise-spiral12
+(define draw-noise-spiral-12
   (make-spiral
-   `((name . "noise-spiral12")
-     (noise-strategy . ,spiral-noise12)
-     (color-speed . 1.5)
-     (color-scale . 45.0)
-     (radius-noise . 10.0)
-     (radius-scale-fn . ,(lambda (t noise-fn)
-			   (+ 0.6 (* 0.4 (noise-fn (sin (* t 1.5)))))))
-     (angle-jitter-scale . 1.0)
-     (needs-smooth-state . #t))))
+   (list #:name "noise-spiral-12"
+         #:noise-strategy spiral-noise-12
+         #:color-speed 1.5
+         #:color-scale 45.0
+         #:radius-noise 10.0
+         #:radius-scale-fn (lambda (t noise-fn)
+                             (+ 0.6 (* 0.4 (noise-fn (sin (* t 1.5))))))
+         #:angle-jitter-scale 1.0
+         #:needs-smooth-state #t)))
 
-(define draw-noise-spiral14
+(define draw-noise-spiral-14
   (make-spiral
-   `((name . "noise-spiral14")
-     (noise-strategy . ,(lambda (noise-fn _random-fn t angle _base-radius prev-smooth)
-			   (let ((raw (noise-fn (* t 2.0) angle)))
-			     (values (lerp prev-smooth raw 0.1)
-				     (expt raw 2.0)
-				     raw))))
-     (color-speed . 3.0)
-     (color-scale . 20.0)
-     (radius-noise . 5.0)
-     (radius-scale-fn . ,(lambda (t _)
-			   (+ 0.4 (* 0.2 (cos (* t 1.5))))))
-     (angle-jitter-scale . 2.0)
-     (needs-smooth-state . #t))))
+   (list #:name "noise-spiral-14"
+         #:noise-strategy (lambda (noise-fn _random-fn t angle _base-radius prev-smooth)
+                            (let ((raw (noise-fn (* t 2.0) angle)))
+                              (values (lerp prev-smooth raw 0.1)
+                                      (expt raw 2.0)
+                                      raw)))
+         #:color-speed 3.0
+         #:color-scale 20.0
+         #:radius-noise 5.0
+         #:radius-scale-fn (lambda (t _)
+                             (+ 0.4 (* 0.2 (cos (* t 1.5)))))
+         #:angle-jitter-scale 2.0
+         #:needs-smooth-state #t)))
 
 (define (raylib-draw-line x1 y1 x2 y2)
   (DrawLineEx (make-Vector2 x1 y1)
@@ -254,21 +264,27 @@
     (set! *current-color* c)))
 
 (define raylib-config
-  `((draw-line . ,raylib-draw-line)
-    (set-color . ,raylib-set-color)
-    (noise-fn . ,love-noise)
-    (random-fn . ,(lambda () (random 1.0)))
-    (smooth-noise-state . 0.0)))
+  (list #:draw-line          raylib-draw-line
+        #:set-color          raylib-set-color
+        #:noise-fn           love-noise
+        #:random-fn          (lambda () (random 1.0))
+        #:smooth-noise-state 0.0))
 
 (define (stateful-runner draw-fn)
   "Creates a clean state enclosure keeping smoothing state."
   (let ((state 0.0))
     (lambda (center-x center-y max-radius t)
-      (set-cdr! (assoc 'smooth-noise-state raylib-config) state)
-      (set! state (draw-fn raylib-config center-x center-y max-radius t)))))
+      (let ((next-state (draw-fn (append (list #:smooth-noise-state state)
+                                         raylib-config)
+                                 center-x
+                                 center-y
+                                 max-radius
+                                 t)))
+        (set! state next-state)
+        next-state))))
 
-(define draw-12 (stateful-runner draw-noise-spiral12))
-(define draw-14 (stateful-runner draw-noise-spiral14))
+(define draw-12 (stateful-runner draw-noise-spiral-12))
+(define draw-14 (stateful-runner draw-noise-spiral-14))
 
 (SetConfigFlags FLAG_MSAA_4X_HINT)
 (InitWindow screen-width screen-height "raylib noise spirals")
