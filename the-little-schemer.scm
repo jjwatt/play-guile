@@ -15,3 +15,9 @@
     (_ () #f)
     (a ((? (lambda (x) (eq? x a))) . _) #t)
     (a (_ . tail) (member? a tail))))
+
+(define firsts
+  (match-lambda
+    (() '())
+    (((first-elem . _) tail)
+     (cons first-elem (firsts tail)))))
