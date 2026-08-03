@@ -57,3 +57,12 @@
     ((new old (head . tail))
      (cons head (subst new old tail)))))
 
+(define subst2
+  (match-lambda*
+    ;; new o1 o2 lat
+    ((_ _ _ ()) '())
+    ((new o1 o2 ((? (lambda (x) (or (eq? o1 x) (eq? o2 x))) head) . tail))
+     (cons new tail))
+    ((new o1 o2 (head . tail))
+     (cons head (subst2 new o1 o2 tail)))))
+
