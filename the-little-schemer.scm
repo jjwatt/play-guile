@@ -66,3 +66,19 @@
     ((new o1 o2 (head . tail))
      (cons head (subst2 new o1 o2 tail)))))
 
+(define multirember
+  (match-lambda*
+    ((_ ()) '())
+    ((a ((? (lambda (x) (eq? a x)) head) . tail))
+     (multirember a tail))
+    ((a (head . tail))
+     (cons head (multirember a tail)))))
+
+(define multiinsertR
+  (match-lambda*
+    ((_ _ ()) '())
+    ((new old ((? (lambda (x) (eq? old x)) head) . tail))
+     (cons old (cons new (multiinsertR new old tail))))
+    ((new old (head . tail))
+     (cons head (multiinsertR new old tail)))))
+
