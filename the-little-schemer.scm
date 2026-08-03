@@ -33,3 +33,18 @@
     (((first-elem . _) tail)
      (cons first-elem (firsts tail)))))
 
+(define insertR
+  (match-lambda*
+    ((_ _ ()) '())
+    ((new old ((? (lambda (x) (eq? old x)) head) . tail))
+     (cons head (cons new tail)))
+    ((new old (head . tail))
+     (cons head (insertR new old tail)))))
+
+(define insertL
+  (match-lambda*
+    ((_ _ ()) '())
+    ((new old ((? (lambda (x) (eq? old x)) head) . tail))
+     (cons new (cons head tail)))
+    ((new old (head . tail))
+     (cons head (insertL new old tail)))))
