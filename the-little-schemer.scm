@@ -48,3 +48,12 @@
      (cons new (cons head tail)))
     ((new old (head . tail))
      (cons head (insertL new old tail)))))
+
+(define subst
+  (match-lambda*
+    ((_ _ ()) '())
+    ((new old ((? (lambda (x) (eq? old x)) head) . tail))
+     (cons new tail))
+    ((new old (head . tail))
+     (cons head (subst new old tail)))))
+
