@@ -1,7 +1,10 @@
 (use-modules (ice-9 match))
 
-(define (atom? x)
-  (and (not (pair? x)) (not (null? x))))
+(define atom?
+  (match-lambda
+    (() #f)
+    ((_ . _) #f)
+    (_ #t)))
 
 (define lat?
   (match-lambda
@@ -10,34 +13,19 @@
      (lat? tail))
     (_ #f)))
 
-(define (member? a lat)
-  (match lat
-    (() #f)
-    ((head . tail)
-     (if (eq? head a) #t
-         (member? a tail)))))
-
-(define member-match-lambda*?
+(define member?
   (match-lambda*
     ((_ ()) #f)
     ((a ((? (lambda (x) (eq? a x)) head) . tail)) #t)
     ((a (_ . tail))
-     (member-match-lambda*? a tail))))
+     (member? a tail))))
 
-(define (rember? a lat)
-  (match lat
-    (() '())
-    ((head . tail)
-     (if (eq? head a)
-         tail
-         (cons head (rember? a tail))))))
-
-(define rember-match-lambda*?
+(define rember?
   (match-lambda*
     ((_ ()) '())
     ((a ((? (lambda (x) (eq? a x)) head) . tail)) tail)
     ((a (head . tail))
-     (cons head (rember-match-lambda*? a tail)))))
+     (cons head (rember? a tail)))))
 
 (define firsts
   (match-lambda
