@@ -55,28 +55,25 @@
 (define (deg->rad degrees)
   (* degrees (/ pi 180)))
 
-;; Pre-allocated foreign memory buffers
-
-;; Up to 4000 points per batch (4000 * 8 bytes = 32,000 bytes)
 (define %max-batch-points 4000)
 
-(define %points-bv (make-bytevector (* %max-batch-points 8)))
-(define %points-ptr (bytevector->pointer %points-bv))
+;; -------------------------------------------------------------------
+;; Static Raylib Records (Allocated ONCE at startup to avoid GC)
+;; -------------------------------------------------------------------
+(define %v1  (make-Vector2 0.0 0.0))
+(define %v2  (make-Vector2 0.0 0.0))
+(define %col (make-Color 0 0 0 255))
 
-(define %color-bv (make-bytevector 4))
-(define %color-ptr (bytevector->pointer %color-bv))
+;; Mutate existing structs in-place (Zero Heap Allocations)
+(define-inlinable (update-v2! v x y)
+  (Vector2-set-x! v (exact->inexact x))
+  (Vector2-set-y! v (exact->inexact y)))
 
-;; Fast mutating bytevector helpers (Zero GC)
-(define-inlinable (update-color-buf! bv r g b a)
-  (bytevector-u8-set! bv 0 (inexact->exact (round (* r 255))))
-  (bytevector-u8-set! bv 1 (inexact->exact (round (* g 255))))
-  (bytevector-u8-set! bv 2 (inexact->exact (round (* b 255))))
-  (bytevector-u8-set! bv 3 (inexact->exact (round (* a 255)))))
-
-(define-inlinable (pack-point! bv index x y)
-  (let ((offset (* index 8)))
-    (bytevector-ieee-single-native-set! bv offset (exact->inexact x))
-    (bytevector-ieee-single-native-set! bv (+ offset 4) (exact->inexact y))))
+(define-inlinable (update-color! c r g b a)
+  (Color-set-r! c (inexact->exact (round (* r 255))))
+  (Color-set-g! c (inexact->exact (round (* g 255))))
+  (Color-set-b! c (inexact->exact (round (* b 255))))
+  (Color-set-a! c (inexact->exact (round (* a 255)))))
 
 (define* (generate-spiral-points spec #:key (turns 6.0) (steps-per-turn 120) (cx 640.0) (cy 360.0))
   (let* ((total-steps (inexact->exact (min %max-batch-points (round (* turns steps-per-turn)))))
@@ -91,18 +88,23 @@
              (y     (+ cy (* r (sin theta)))))
         (vector-set! points i (cons x y))))))
 
-(define (draw-point-vector/strip points-vec point-count r g b a)
-  "Packs pre-generated points into C memory and draws in 1 call."
-  (when (< 1 point-count)
-    ;; Pack colors into static C buffer
-    (update-color-buf! %color-bv r g b a)
+(define* (draw-point-vector/lines points-vec point-count r g b a #:key (thick 2.0))
+  (when (> point-count 1)
+    ;; Update color once for the entire batch
+    (update-color! %col r g b a)
 
-    ;; Pack (x . y) values directly into raw float C array.
-    (do ((i 0 (+ i 1)))
-        ((= i point-count))
-      (let ((p (vector-ref points-vec i)))
-        (pack-point! %points-bv i (car p) (cdr p)))))
-  (DrawLineStrip %points-ptr point-count %color-ptr))
+    (let ((thick-f (exact->inexact thick)))
+      (do ((i 0 (+ i 1)))
+          ((= i (- point-count 1)))
+        (let ((p1 (vector-ref points-vec i))
+              (p2 (vector-ref points-vec (+ i 1))))
+
+          ;; Mutate the static Vector2 instances in-place
+          (update-v2! %v1 (car p1) (cdr p1))
+          (update-v2! %v2 (car p2) (cdr p2))
+
+          ;; Pass pre-allocated records directly
+          (DrawLineEx %v1 %v2 thick-f %col))))))
 
 (define (main)
   (InitWindow screen-width screen-height "Guile Raylib - Fast Batch Spirals")
@@ -122,10 +124,10 @@
         (with-drawing
          (ClearBackground BLACK)
 
-         (let ((red (+ 0.5 (* 0.5 (sin t))))
-               (green (+ 0.5 (* 0.5 (cos (* t 0.7)))))
-               (blue 0.8))
-           (draw-point-vector/strip spiral-pts pt-count red green blue 1.0))))
+         (let ((r (+ 0.5 (* 0.5 (sin t))))
+               (g (+ 0.5 (* 0.5 (cos (* t 0.7)))))
+               (b 0.8))
+           (draw-point-vector/lines spiral-pts pt-count r g b 1.0 #:thick 2.5))))
       (loop (+ t 0.016))))
   (CloseWindow))
 
