@@ -140,7 +140,6 @@
                       ;; Config
                       noise-fn
                       random-fn
-                      set-color
                       draw-line
                       (smooth-noise-state 0.0)
                       ;; Options
@@ -177,15 +176,14 @@
                         ((next-smooth spikes combined)
                          (noise-strategy noise-fn random-fn t angle base-radius smooth)))
 
-            (set-color r g b a)
-
             (let* ((this-radius  (next-radius random-fn base-radius radius-noise-val spikes angle t))
 	           (angle-jitter (* angle-jitter-scale combined))
 	           (radians      (deg->rad (+ angle angle-jitter)))
 	           (x            (+ center-x (* this-radius (cos radians))))
-	           (y            (+ center-y (* this-radius (sin radians)))))
+	           (y            (+ center-y (* this-radius (sin radians))))
+                   (current-color (rgba->color r g b a)))
 	      (when prev-x
-	        (draw-line x y prev-x prev-y))
+	        (draw-line x y prev-x prev-y #:color current-color))
 	      (loop (+ angle step-size)
 	            next-smooth
 	            (+ base-radius (* growth-rate step-size))
@@ -250,22 +248,23 @@
          #:angle-jitter-scale 2.0
          #:needs-smooth-state #t)))
 
-(define (raylib-draw-line x1 y1 x2 y2)
-  (DrawLineEx (make-Vector2 x1 y1)
-	      (make-Vector2 x2 y2)
-	      2.0
-	      *current-color*))
+(define* (raylib-draw-line x1 y1 x2 y2 #:key color (r 0) (g 0) (b 0) (a 1.0) (thickness 2.0))
+  "Draws a line with raylib's DrawLineEx."
+  (let ((c (or color (rgba->color r g b a))))
+    (DrawLineEx (make-Vector2 x1 y1)
+	        (make-Vector2 x2 y2)
+	        thickness
+	        c)))
 
-(define (raylib-set-color r g b a)
-  (let ((c (make-Color (inexact->exact (round (* r 255)))
+(define (rgba->color r g b a)
+  "Converts normalized floats to a Raylib Color."
+  (make-Color (inexact->exact (round (* r 255)))
 		       (inexact->exact (round (* g 255)))
 		       (inexact->exact (round (* b 255)))
-		       (inexact->exact (round (* a 255))))))
-    (set! *current-color* c)))
+		       (inexact->exact (round (* a 255)))))
 
 (define raylib-config
   (list #:draw-line          raylib-draw-line
-        #:set-color          raylib-set-color
         #:noise-fn           love-noise
         #:random-fn          (lambda () (random 1.0))
         #:smooth-noise-state 0.0))
