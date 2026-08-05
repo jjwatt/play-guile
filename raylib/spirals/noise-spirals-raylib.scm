@@ -289,7 +289,6 @@
 (InitWindow screen-width screen-height "raylib noise spirals")
 (SetTargetFPS 60)
 (define t 0)
-(define *current-color* (make-Color 255 255 255 255))
 (define target-canvas (LoadRenderTexture screen-width screen-height))
 ;; In Raylib, textures are flipped vertically on the Y-axis.
 (define canvas-source-rect (make-Rectangle 0 0 screen-width (- screen-height)))
