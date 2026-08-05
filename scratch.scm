@@ -106,7 +106,6 @@
 	     (lambda (s) (+ s 1))
 	     start))
 
-
 (define* (guile-unfold p f g seed #:optional (tail-gen (lambda (x) '())))
   (define (reverse+tail lst seed)
     (let loop ((lst lst)

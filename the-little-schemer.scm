@@ -82,3 +82,29 @@
     ((new old (head . tail))
      (cons head (multiinsertR new old tail)))))
 
+(define multisubst
+  (match-lambda*
+    ((_ _ ()) '())
+    ((new old ((? (lambda (x) (eq? old x)) head) . tail))
+     (cons new (multisubst new old tail)))
+    ((new old (head . tail))
+     (cons head (multisubst new old tail)))))
+
+;;;; Ch. 4
+
+(define (add1 n)
+  (+ n 1))
+
+(define (sub1 n)
+  (- n 1))
+
+(define o+
+  (match-lambda*
+    ((n 0) n)
+    ((n m) (add1 (o+ n (sub1 m))))))
+
+(define o-
+  (match-lambda*
+    ((n 0) n)
+    ((n m) (sub1 (o- n (sub1 m))))))
+
